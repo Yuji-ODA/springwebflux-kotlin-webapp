@@ -24,6 +24,6 @@ class SecurityConfig {
             .build()
 
     private fun authenticationWebFilter(): AuthenticationWebFilter =
-        AuthenticationWebFilter(ReactiveAuthenticationManager { Mono.just(it.apply { isAuthenticated = true }) })
-            .apply { setServerAuthenticationConverter(MyAuthenticationConverter()) }
+        AuthenticationWebFilter(ReactiveAuthenticationManager { Mono.just(it) })
+            .apply { setServerAuthenticationConverter(MyAuthenticationConverter(true, "USER")) }
 }
