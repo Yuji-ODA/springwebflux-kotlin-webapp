@@ -5,11 +5,14 @@ import com.example.webfluxkotlin.handler.RootHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.MediaType
+import org.springframework.web.reactive.function.BodyInserters.fromValue
 import org.springframework.web.reactive.function.server.RequestPredicates.GET
 import org.springframework.web.reactive.function.server.RequestPredicates.accept
 import org.springframework.web.reactive.function.server.RouterFunctions
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Flux
+import java.util.*
+import java.util.function.Predicate
 import java.util.stream.Collectors
 
 @Configuration(proxyBeanMethods = false)
@@ -28,44 +31,59 @@ class Routers {
     )
 
     @Bean
-    fun lambda() = RouterFunctions.route(
-        GET("/lambda").and(accept(MediaType.TEXT_PLAIN))) { req ->
+    fun extract() = RouterFunctions.route(
+        GET("/extract").and(accept(MediaType.TEXT_PLAIN))) { req ->
 
-        val sectionId = req.queryParam("s").map(Integer::valueOf).orElse(0)
+        val maybeSectionIdList = req.queryParam("s")
+            .map { it.split(",") }
+            .map { it.distinct() }
+            .map { it.map(Integer::valueOf) }
+            .map { it.filter { sectionId -> sectionId in 1..3 } }
+            .flatMap { if (it.isEmpty()) Optional.empty() else Optional.of(it) }
 
-        val result: Flux<String> = Flux.just(Flux.just("hoge", "huga", "foo"), Flux.just("huga", "foo", "bar"))
-            .flatMap { it.collect(Collectors.toSet()) }
-            .reduce(mutableListOf<Set<String>>()) { acc, set -> acc.apply { add(set) } }
-            .flatMapMany(extracting(sectionId))
-            .map { it + "\n" }
+        if (maybeSectionIdList.isEmpty) {
+            ServerResponse.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(fromValue(""))
+        } else {
+            val result: Flux<String> = Flux.just(Flux.just("hoge", "huga", "foo"), Flux.just("huga", "foo", "bar"))
+                .flatMap { it.collect(Collectors.toSet()) }
+                .reduce(mutableListOf<Set<String>>()) { acc, set -> acc.apply { add(set) } }
+                .flatMapMany(extracting(maybeSectionIdList.get()))
+                .map { it + "\n" }
 
-        ServerResponse.ok()
-            .contentType(MediaType.TEXT_PLAIN)
-            .body(result, String::class.java)
+            ServerResponse.ok()
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(result, String::class.java)
+        }
     }
 
-    fun <T> extracting(sectionId: Int): (List<Set<T>>) -> Flux<T> = { setList ->
-        val set1 = setList[0]
-        val set2 = setList[1]
 
-        val predicate: (T) -> Boolean = when(sectionId) {
-            1 -> {
-                { set1.contains(it) && !set2.contains(it) }
-            }
-            2 -> {
-                { !set1.contains(it) && set2.contains(it)  }
-            }
-            3 -> {
-                { setList.all { set -> set.contains(it) } }
-            }
-            else -> {
-                { false }
-            }
-        }
+    private fun <T> extracting(sectionIdList: List<Int>): (List<Set<T>>) -> Flux<T> = {
 
-        Flux.fromIterable(set1.union(set2))
+        val predicate: Predicate<T>  = sectionIdList.map(composing(it[0], it[1]))
+            .reduce { p1, p2 -> p1.or(p2) }
+
+        Flux.fromIterable(it.reduce { acc, s -> acc.union(s) })
             .parallel()
             .filter(predicate)
             .sequential()
+    }
+
+    private fun <T> composing(set1: Set<T>, set2: Set<T>): (Int) -> Predicate<T> = { sectionId ->
+        when (sectionId) {
+            1 -> {
+                Predicate { set1.contains(it) && !set2.contains(it) }
+            }
+            2 -> {
+                Predicate { !set1.contains(it) && set2.contains(it) }
+            }
+            3 -> {
+                Predicate { listOf(set1, set2).all { set -> set.contains(it) } }
+            }
+            else -> {
+                Predicate { false }
+            }
+        }
     }
 }
