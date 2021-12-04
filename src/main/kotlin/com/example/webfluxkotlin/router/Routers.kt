@@ -14,6 +14,7 @@ import reactor.core.publisher.Flux
 import java.util.*
 import java.util.function.Predicate
 import java.util.stream.Collectors
+import java.util.stream.Stream
 
 @Configuration(proxyBeanMethods = false)
 class Routers {
@@ -48,7 +49,8 @@ class Routers {
         } else {
             val result: Flux<String> = Flux.just(Flux.just("hoge", "huga", "foo"), Flux.just("huga", "foo", "bar"))
                 .flatMap { it.collect(Collectors.toSet()) }
-                .reduce(mutableListOf<Set<String>>()) { acc, set -> acc.apply { add(set) } }
+                .reduce(Stream.empty<Set<String>>()) { acc, set -> Stream.concat(acc, Stream.of(set)) }
+                .map { it.collect(Collectors.toList()) }
                 .flatMapMany(extracting(maybeSectionIdList.get()))
                 .map { it + "\n" }
 
