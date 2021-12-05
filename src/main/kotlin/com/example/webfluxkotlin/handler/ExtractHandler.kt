@@ -30,7 +30,6 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
         return maybeSectionIdList.map { sectionIdList ->
             val range = 0 until sets
             val maxSections = (1 shl sets) - 1
-            val sourceRequired: List<Boolean> = judgeRequired(sectionIdList)
 
             val fluxSuppliers: Flux<Supplier<Flux<String>>> = Flux.just(
                 Supplier { Flux.just("hoge", "huga", "foo") },
@@ -44,7 +43,7 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                     .distinct()
             } else {
                 fluxSuppliers
-                    .zipWithIterable(sourceRequired)
+                    .zipWithIterable(judgeRequired(sectionIdList))
                     .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
                     .zipWithIterable(range)
                     .parallel()
