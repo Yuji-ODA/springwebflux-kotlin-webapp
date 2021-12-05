@@ -17,27 +17,34 @@ import java.util.stream.Stream
 @Component
 class ExtractHandler: HandlerFunction<ServerResponse> {
     override fun handle(request: ServerRequest): Mono<ServerResponse> {
+        val sets = 2
+
         val maybeSectionIdList = request.queryParam("s")
             .map { it.split(",") }
             .map { it.distinct() }
             .map { it.map(Integer::valueOf) }
-            .map { it.filter { sectionId -> sectionId in 1..3 } }
+            .map { it.filter { sectionId -> sectionId in 1 until (1 shl sets) } }
             .flatMap { if (it.isEmpty()) Optional.empty() else Optional.of(it) }
 
         return maybeSectionIdList.map { sectionIdList ->
-            val bitMasks = listOf(1, 2)
-            val bits: Int = sectionIdList.reduce(Int::or)
-            val sourceRequired: List<Boolean> = bitMasks.map { mask -> bits and mask }
-                .map { mask -> mask != 0 }
+            val range = 0 until sets
+//            val bitMasks = range.map { 1 shl it }
+//            val bits: Int = sectionIdList.reduce(Int::or)
+//            val sourceRequired: List<Boolean> = bitMasks.map { mask -> bits and mask }
+//                .map { mask -> mask != 0 }
 
             val result: Flux<String> = Flux.just(
                     Supplier { Flux.just("hoge", "huga", "foo") },
                     Supplier { Flux.just("huga", "foo", "bar") }
                 )
-                .zipWithIterable(sourceRequired)
-                .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
-                .map { it.get() }
-                .flatMap { it.collect(Collectors.toSet()) }
+//                .zipWithIterable(sourceRequired)
+//                .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
+                .zipWithIterable(range)
+                .parallel()
+                .map { it.mapT1 { supplier -> supplier.get().collect(Collectors.toSet()) } }
+                .sequential()
+                .sort { v1, v2 -> v1.t2 - v2.t2 }
+                .flatMap { pair -> pair.t1 }
                 .reduce(Stream.empty<Set<String>>()) { acc, set -> Stream.concat(acc, Stream.of(set)) }
                 .map { it.collect(Collectors.toList()) }
                 .flatMapMany(extractingBy(sectionIdList))
