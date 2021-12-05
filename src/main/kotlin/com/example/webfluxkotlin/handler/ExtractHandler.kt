@@ -28,17 +28,14 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
 
         return maybeSectionIdList.map { sectionIdList ->
             val range = 0 until sets
-//            val bitMasks = range.map { 1 shl it }
-//            val bits: Int = sectionIdList.reduce(Int::or)
-//            val sourceRequired: List<Boolean> = bitMasks.map { mask -> bits and mask }
-//                .map { mask -> mask != 0 }
+            val sourceRequired: List<Boolean> = judgeRequired(sectionIdList, range)
 
             val result: Flux<String> = Flux.just(
                     Supplier { Flux.just("hoge", "huga", "foo") },
                     Supplier { Flux.just("huga", "foo", "bar") }
                 )
-//                .zipWithIterable(sourceRequired)
-//                .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
+                .zipWithIterable(sourceRequired)
+                .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
                 .zipWithIterable(range)
                 .parallel()
                 .map { it.mapT1 { supplier -> supplier.get().collect(Collectors.toSet()) } }
@@ -58,6 +55,18 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(BodyInserters.fromValue(""))
         )
+    }
+
+    private fun judgeRequired(sectionIdList: List<Int>, range: IntRange): List<Boolean> {
+        return if (sectionIdList.size != 2) {
+            range.map { true }
+        } else if (sectionIdList.containsAll(listOf(1, 3))) {
+            listOf(true, false)
+        } else if (sectionIdList.containsAll(listOf(2, 3))) {
+            listOf(false, true)
+        } else {
+            range.map { true }
+        }
     }
 
     private fun <T> extractingBy(sectionIdList: List<Int>): (List<Set<T>>) -> Flux<T> = {
