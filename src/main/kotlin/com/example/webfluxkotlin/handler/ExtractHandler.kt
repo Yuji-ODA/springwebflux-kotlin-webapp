@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.util.*
+import java.util.Comparator.comparing
 import java.util.function.Predicate
 import java.util.function.Supplier
 import java.util.stream.Collectors
@@ -28,28 +29,38 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
 
         return maybeSectionIdList.map { sectionIdList ->
             val range = 0 until sets
+            val maxSections = (1 shl sets) - 1
             val sourceRequired: List<Boolean> = judgeRequired(sectionIdList)
 
-            val result: Flux<String> = Flux.just(
-                    Supplier { Flux.just("hoge", "huga", "foo") },
-                    Supplier { Flux.just("huga", "foo", "bar") }
-                )
-                .zipWithIterable(sourceRequired)
-                .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
-                .zipWithIterable(range)
-                .parallel()
-                .map { it.mapT1 { supplier -> supplier.get().collect(Collectors.toSet()) } }
-                .sequential()
-                .sort { v1, v2 -> v1.t2 - v2.t2 }
-                .flatMap { pair -> pair.t1 }
-                .reduce(Stream.empty<Set<String>>()) { acc, set -> Stream.concat(acc, Stream.of(set)) }
-                .map { it.collect(Collectors.toList()) }
-                .flatMapMany(extractingBy(sectionIdList))
-                .map { it + "\n" }
+            val fluxSuppliers: Flux<Supplier<Flux<String>>> = Flux.just(
+                Supplier { Flux.just("hoge", "huga", "foo") },
+                Supplier { Flux.just("huga", "foo", "bar") }
+            )
+
+            val result = if (sectionIdList.size == maxSections) {
+                fluxSuppliers.parallel()
+                    .flatMap { it.get() }
+                    .sequential()
+                    .distinct()
+            } else {
+                fluxSuppliers
+                    .zipWithIterable(sourceRequired)
+                    .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
+                    .zipWithIterable(range)
+                    .parallel()
+                    .map { it.mapT1 { supplier -> supplier.get().collect(Collectors.toSet()) } }
+                    .sequential()
+                    .sort(comparing { it.t2 })
+                    .flatMap { it.t1 }
+                    .reduce(Stream.empty<Set<String>>()) { acc, set -> Stream.concat(acc, Stream.of(set)) }
+                    .map { it.collect(Collectors.toList()) }
+                    .flatMapMany(extractingBy(sectionIdList))
+            }
 
             ServerResponse.ok()
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(result, String::class.java)
+                .body(result.map { it + "\n" }, String::class.java)
+
         }.orElse(
             ServerResponse.ok()
                 .contentType(MediaType.TEXT_PLAIN)
@@ -74,7 +85,6 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
     }
 
     private fun <T> extractingBy(sectionIdList: List<Int>): (List<Set<T>>) -> Flux<T> = {
-
         val predicate: Predicate<T> = sectionIdList.map(composingPredicate(it[0], it[1]))
             .reduce { p1, p2 -> p1.or(p2) }
 
