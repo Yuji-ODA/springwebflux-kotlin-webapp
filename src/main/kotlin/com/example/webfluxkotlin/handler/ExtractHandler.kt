@@ -28,7 +28,7 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
 
         return maybeSectionIdList.map { sectionIdList ->
             val range = 0 until sets
-            val sourceRequired: List<Boolean> = judgeRequired(sectionIdList, range)
+            val sourceRequired: List<Boolean> = judgeRequired(sectionIdList)
 
             val result: Flux<String> = Flux.just(
                     Supplier { Flux.just("hoge", "huga", "foo") },
@@ -57,13 +57,17 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
         )
     }
 
-    private fun judgeRequired(sectionIdList: List<Int>, range: IntRange): List<Boolean> {
+    private fun judgeRequired(sectionIdList: List<Int>): List<Boolean> {
+        val size = 2
+        val range = 1..size
+
+        val filterList: List<List<Int>> = listOf(listOf(1, 3), listOf(2, 3))
+
         return if (sectionIdList.size != 2) {
             range.map { true }
-        } else if (sectionIdList.containsAll(listOf(1, 3))) {
-            listOf(true, false)
-        } else if (sectionIdList.containsAll(listOf(2, 3))) {
-            listOf(false, true)
+        } else if (filterList.any(sectionIdList::containsAll)) {
+            val mask = filterList.find(sectionIdList::containsAll)?.reduce(Int::and)!!
+            range.map { it and mask != 0 }
         } else {
             range.map { true }
         }
