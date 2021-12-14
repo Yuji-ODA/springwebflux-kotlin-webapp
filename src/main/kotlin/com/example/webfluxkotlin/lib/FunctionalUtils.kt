@@ -5,8 +5,11 @@ import java.util.stream.Stream
 
 object FunctionalUtils {
 
-    fun <T> sequence(stream: Stream<Mono<T>>): Mono<Stream<T>> =
-        stream.reduce(Mono.just(Stream.empty()), liftMono2(::cons), liftMono2 { s1, s2 -> Stream.concat(s1, s2) })
+    fun <T, R> traverse(stream: Stream<T>, mapper: (T) -> Mono<R>): Mono<Stream<R>> =
+        stream.map(mapper)
+            .reduce(Mono.just(Stream.empty()), liftMono2(::cons), liftMono2 { s1, s2 -> Stream.concat(s1, s2) })
+
+    fun <T> sequence(stream: Stream<Mono<T>>): Mono<Stream<T>> = traverse(stream) { it }
 
     fun <T, R> liftMono(f: (T) -> R): (Mono<T>) -> Mono<R> = { it.map(f) }
 
@@ -23,4 +26,4 @@ object FunctionalUtils {
         liftMono3(f)(m1, m2, m3)
 
     fun <T> cons(stream: Stream<out T>, t: T): Stream<T> = Stream.concat(stream, Stream.of(t))
-}
+ }

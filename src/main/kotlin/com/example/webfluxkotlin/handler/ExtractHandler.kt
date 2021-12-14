@@ -8,12 +8,12 @@ import org.springframework.web.reactive.function.server.ServerRequest
 import org.springframework.web.reactive.function.server.ServerResponse
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.util.*
 import java.util.Comparator.comparing
 import java.util.function.Predicate
 import java.util.function.Supplier
 import java.util.stream.Collectors
-import java.util.stream.Stream
 
 @Component
 class ExtractHandler: HandlerFunction<ServerResponse> {
@@ -37,9 +37,8 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
             )
 
             val result = if (sectionIdList.size == maxSections) {
-                fluxSuppliers.parallel()
-                    .flatMap { it.get() }
-                    .sequential()
+                fluxSuppliers
+                    .flatMap({ it.get().subscribeOn(Schedulers.parallel()) }, 5)
                     .distinct()
             } else {
                 fluxSuppliers
@@ -47,12 +46,11 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                     .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
                     .zipWithIterable(range)
                     .parallel()
+                    .runOn(Schedulers.newParallel("my scheduler", 2))
                     .map { it.mapT1 { supplier -> supplier.get().collect(Collectors.toSet()) } }
-                    .sequential()
-                    .sort(comparing { it.t2 })
+                    .sorted(comparing { it.t2 })
                     .flatMap { it.t1 }
-                    .reduce(Stream.empty<Set<String>>()) { acc, set -> Stream.concat(acc, Stream.of(set)) }
-                    .map { it.collect(Collectors.toList()) }
+                    .collectList()
                     .flatMapMany(extractingBy(sectionIdList))
             }
 
