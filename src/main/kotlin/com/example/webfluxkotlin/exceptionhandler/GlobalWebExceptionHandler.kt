@@ -1,4 +1,4 @@
-package com.example.webfluxkotlin
+package com.example.webfluxkotlin.exceptionhandler
 
 import org.springframework.boot.autoconfigure.web.WebProperties
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler
@@ -17,7 +17,7 @@ import javax.validation.ConstraintViolationException
 
 @Component
 @Order(-2)
-class GlobalExceptionHandler(
+class GlobalWebExceptionHandler(
     errorAttributes: ErrorAttributes?,
     resourceProperties: WebProperties.Resources,
     applicationContext: ApplicationContext?,
