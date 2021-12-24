@@ -12,13 +12,13 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig
 @SpringJUnitConfig(classes = [JacksonAutoConfiguration::class, ObjectMapperConfig::class])
 class JacksonTest {
     @Autowired
-    var mapper: ObjectMapper? = null
+    lateinit var mapper: ObjectMapper
 
     @Test
     fun testSerialize() {
         val given = Greeting("おは", 298)
 
-        val actual = mapper?.writeValueAsString(given)
+        val actual = mapper.writeValueAsString(given)
 
         val expected = "{\"message\":\"おは\",\"my_age\":298}"
 
@@ -29,7 +29,7 @@ class JacksonTest {
     fun testDeserialize() {
         val given = "{\"message\":\"おは\",\"my_age\":298}"
 
-        val actual = mapper?.readValue(given, Greeting::class.java)
+        val actual = mapper.readValue(given, Greeting::class.java)
 
         val expected = Greeting("おは", 298)
 
