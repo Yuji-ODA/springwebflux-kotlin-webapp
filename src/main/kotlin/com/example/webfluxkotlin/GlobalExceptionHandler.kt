@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationContext
 import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.codec.ServerCodecConfigurer
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.RequestPredicates
@@ -19,8 +20,13 @@ import javax.validation.ConstraintViolationException
 class GlobalExceptionHandler(
     errorAttributes: ErrorAttributes?,
     resourceProperties: WebProperties.Resources,
-    applicationContext: ApplicationContext?
+    applicationContext: ApplicationContext?,
+    configurer: ServerCodecConfigurer
 ) : AbstractErrorWebExceptionHandler(errorAttributes, resourceProperties, applicationContext) {
+
+    init {
+        super.setMessageWriters(configurer.writers)
+    }
 
     override fun getRoutingFunction(errorAttributes: ErrorAttributes?) =
         RouterFunctions.route(RequestPredicates.all()) { req ->
