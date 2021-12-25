@@ -34,7 +34,7 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                 Supplier { Flux.just("huga", "foo", "bar") }
             )
 
-            val fixSizedParallel = Schedulers.newParallel("my scheduler", 2)
+            val fixSizedParallel = Schedulers.newParallel("my scheduler", sets)
 
             val limits = listOf(3L, 2L)
 
@@ -45,7 +45,8 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                         pair.mapT1 { it.get().take(pair.t2) }
                             .t1
                             .subscribeOn(fixSizedParallel)
-                    }, 2)
+                            .log()
+                    }, sets)
                     .distinct()
             } else {
                 fluxSuppliers
@@ -58,8 +59,7 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                             .collect(Collectors.toSet())
                             .subscribeOn(fixSizedParallel)
                             .log()
-                        }, 2
-                    )
+                    }, sets)
                     .collectList()
                     .flatMapMany(extractingBy(sectionIdList))
             }

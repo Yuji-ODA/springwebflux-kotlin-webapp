@@ -19,10 +19,10 @@ import javax.validation.ConstraintViolationException
 @Order(-2)
 class GlobalWebExceptionHandler(
     errorAttributes: ErrorAttributes?,
-    resourceProperties: WebProperties.Resources,
+    webProperties: WebProperties,
     applicationContext: ApplicationContext?,
     configurer: ServerCodecConfigurer
-) : AbstractErrorWebExceptionHandler(errorAttributes, resourceProperties, applicationContext) {
+) : AbstractErrorWebExceptionHandler(errorAttributes, webProperties.resources, applicationContext) {
 
     init {
         super.setMessageWriters(configurer.writers)
