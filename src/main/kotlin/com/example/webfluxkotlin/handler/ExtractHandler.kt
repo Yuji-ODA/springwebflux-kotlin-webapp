@@ -10,7 +10,6 @@ import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.util.*
-import java.util.Comparator.comparing
 import java.util.function.Predicate
 import java.util.function.Supplier
 import java.util.stream.Collectors
@@ -28,7 +27,6 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
             .flatMap { if (it.isEmpty()) Optional.empty() else Optional.of(it) }
 
         return maybeSectionIdList.map { sectionIdList ->
-            val range = 0 until sets
             val maxSections = (1 shl sets) - 1
 
             val fluxSuppliers: Flux<Supplier<Flux<String>>> = Flux.just(
@@ -36,20 +34,32 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                 Supplier { Flux.just("huga", "foo", "bar") }
             )
 
+            val fixSizedParallel = Schedulers.newParallel("my scheduler", 2)
+
+            val limits = listOf(3L, 2L)
+
             val result = if (sectionIdList.size == maxSections) {
                 fluxSuppliers
-                    .flatMap({ it.get().subscribeOn(Schedulers.parallel()) }, 5)
+                    .zipWithIterable(limits)
+                    .flatMap({ pair ->
+                        pair.mapT1 { it.get().take(pair.t2) }
+                            .t1
+                            .subscribeOn(fixSizedParallel)
+                    }, 2)
                     .distinct()
             } else {
                 fluxSuppliers
                     .zipWithIterable(judgeRequired(sectionIdList))
                     .map { pair -> if (pair.t2) pair.t1 else Supplier { Flux.empty() } }
-                    .zipWithIterable(range)
-                    .parallel()
-                    .runOn(Schedulers.newParallel("my scheduler", 2))
-                    .map { it.mapT1 { supplier -> supplier.get().collect(Collectors.toSet()) } }
-                    .sorted(comparing { it.t2 })
-                    .flatMap { it.t1 }
+                    .zipWithIterable(limits)
+                    .flatMapSequential({ pair ->
+                        pair.mapT1 { it.get().take(pair.t2) }
+                            .t1
+                            .collect(Collectors.toSet())
+                            .subscribeOn(fixSizedParallel)
+                            .log()
+                        }, 2
+                    )
                     .collectList()
                     .flatMapMany(extractingBy(sectionIdList))
             }
