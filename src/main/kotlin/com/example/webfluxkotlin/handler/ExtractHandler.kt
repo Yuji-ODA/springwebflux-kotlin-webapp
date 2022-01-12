@@ -59,7 +59,7 @@ class ExtractHandler: HandlerFunction<ServerResponse> {
                             .collect(Collectors.toSet())
                             .subscribeOn(fixSizedParallel)
                             .log()
-                    }, sets)
+                     }, sets)
                     .collectList()
                     .flatMapMany(extractingBy(sectionIdList))
             }
