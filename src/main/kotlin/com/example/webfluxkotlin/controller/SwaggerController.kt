@@ -1,9 +1,11 @@
 package com.example.webfluxkotlin.controller
 
+
+import com.example.webfluxkotlin.controller.response.Response
 import com.example.webfluxkotlin.resource.Greeting
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.media.ExampleObject
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import org.springframework.http.MediaType
@@ -21,10 +23,11 @@ class SwaggerController {
             responseCode = "200", description = "挨拶",
             content = [
                 Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = Schema(implementation = Greeting::class))
+//                    schema = Schema(implementation = GreetingResponse::class, example = "{}"),
+                    examples = [ExampleObject("{\"successful\": true, \"content\": {\"message\": \"メッセージ\", \"age\": 120}}")])
             ]
         )
     ])
     @GetMapping
-    fun swaggerTest() = Greeting("すわがーのてすとです。", 109)
+    fun greeting() = Response.of(Greeting("すわがーのてすとです。", 109))
 }
