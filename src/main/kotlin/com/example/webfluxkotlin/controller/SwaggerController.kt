@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("swagger-test")
 class SwaggerController {
 
-    @Operation(summary = "これはすわがーのお試しです。")
+    @Operation(operationId = "swagger", summary = "すわがーお試し", description = "これはすわがーのお試しです。")
     @ApiResponses(value = [
         ApiResponse(
             responseCode = "200", description = "挨拶",

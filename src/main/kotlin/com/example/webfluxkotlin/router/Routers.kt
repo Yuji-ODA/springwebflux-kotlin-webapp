@@ -3,6 +3,8 @@ package com.example.webfluxkotlin.router
 import com.example.webfluxkotlin.handler.ExtractHandler
 import com.example.webfluxkotlin.handler.GreetingHandler
 import com.example.webfluxkotlin.handler.RootHandler
+import org.springdoc.core.fn.builders.apiresponse.Builder
+import org.springdoc.webflux.core.fn.SpringdocRouteBuilder
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.MediaType
@@ -14,10 +16,13 @@ import org.springframework.web.reactive.function.server.RouterFunctions
 class Routers {
 
     @Bean
-    fun router(rootHandler: RootHandler) = RouterFunctions.route(
-        GET("/").and(accept(MediaType.TEXT_HTML)),
-        rootHandler
-    )
+    fun router(rootHandler: RootHandler) = SpringdocRouteBuilder.route()
+            .GET("/", accept(MediaType.TEXT_HTML), rootHandler) {
+                it.operationId("root")
+                    .summary("こんばんにゃの人")
+                    .description("こんばんにゃの人が語りかけます。")
+                    .response(Builder.responseBuilder().responseCode("200").description("normal"))
+            }.build()
 
     @Bean
     fun greeting(greetingHandler: GreetingHandler) = RouterFunctions.route(
