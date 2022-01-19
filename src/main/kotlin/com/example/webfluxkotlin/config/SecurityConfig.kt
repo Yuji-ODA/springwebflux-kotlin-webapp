@@ -19,6 +19,7 @@ class SecurityConfig {
     fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
         http
             .authorizeExchange {
+                it.pathMatchers("/swagger-ui.html").permitAll()
                 it.anyExchange().authenticated()
             }
             .addFilterAt(authenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION)

@@ -34,6 +34,12 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+
+	implementation("org.springdoc:springdoc-openapi-webflux-ui:1.6.4")
+	implementation("org.springdoc:springdoc-openapi-webmvc-core:1.6.4")
+	implementation("org.springdoc:springdoc-openapi-webflux-core:1.6.4")
+	implementation("org.springdoc:springdoc-openapi-security:1.6.4")
+
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")

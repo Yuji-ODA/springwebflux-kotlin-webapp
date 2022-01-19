@@ -14,7 +14,7 @@ import org.springframework.web.reactive.function.server.RouterFunctions
 class Routers {
 
     @Bean
-    fun root(rootHandler: RootHandler) = RouterFunctions.route(
+    fun router(rootHandler: RootHandler) = RouterFunctions.route(
         GET("/").and(accept(MediaType.TEXT_HTML)),
         rootHandler
     )
