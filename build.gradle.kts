@@ -39,6 +39,7 @@ dependencies {
 	implementation("org.springdoc:springdoc-openapi-webmvc-core:1.6.4")
 	implementation("org.springdoc:springdoc-openapi-webflux-core:1.6.4")
 	implementation("org.springdoc:springdoc-openapi-security:1.6.4")
+	implementation("org.springdoc:springdoc-openapi-kotlin:1.6.4")
 
 	annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
