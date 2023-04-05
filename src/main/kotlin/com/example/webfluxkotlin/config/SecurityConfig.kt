@@ -2,8 +2,8 @@ package com.example.webfluxkotlin.config
 
 import com.example.webfluxkotlin.auth.MyAuthenticationConverter
 import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.ReactiveAuthenticationManager
-import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.web.server.SecurityWebFilterChain
@@ -12,21 +12,22 @@ import org.springframework.security.web.server.context.NoOpServerSecurityContext
 import reactor.core.publisher.Mono
 
 
-@EnableWebFluxSecurity
+@Configuration
 class SecurityConfig {
 
     @Bean
-    fun springSecurityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
+    fun securityFilterChain(http: ServerHttpSecurity): SecurityWebFilterChain =
         http
             .authorizeExchange {
-                it.pathMatchers("/swagger-ui.html").permitAll()
-                it.anyExchange().authenticated()
+                it.pathMatchers("/swagger-ui.html", "/v3/api-docs").permitAll()
+                    .anyExchange().authenticated()
             }
             .addFilterAt(authenticationWebFilter(), SecurityWebFiltersOrder.AUTHENTICATION)
             .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
             .build()
 
-    private fun authenticationWebFilter(): AuthenticationWebFilter =
+    @Bean
+    fun authenticationWebFilter(): AuthenticationWebFilter =
         AuthenticationWebFilter(ReactiveAuthenticationManager { Mono.just(it) })
             .apply { setServerAuthenticationConverter(MyAuthenticationConverter(true, "USER")) }
 }

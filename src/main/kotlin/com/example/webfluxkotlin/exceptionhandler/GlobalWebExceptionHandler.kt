@@ -1,5 +1,6 @@
 package com.example.webfluxkotlin.exceptionhandler
 
+import jakarta.validation.ConstraintViolationException
 import org.springframework.boot.autoconfigure.web.WebProperties
 import org.springframework.boot.autoconfigure.web.reactive.error.AbstractErrorWebExceptionHandler
 import org.springframework.boot.web.reactive.error.ErrorAttributes
@@ -13,7 +14,6 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.server.RequestPredicates
 import org.springframework.web.reactive.function.server.RouterFunctions
 import org.springframework.web.reactive.function.server.ServerResponse
-import javax.validation.ConstraintViolationException
 
 @Component
 @Order(-2)
